@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Data Cleaning</h3>
+
+<form method="post" class="mb-4">
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="drop_index" id="drop_index" checked>
+    <label class="form-check-label" for="drop_index">Drop "index" column (if present)</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="drop_duplicates" id="drop_duplicates" checked>
+    <label class="form-check-label" for="drop_duplicates">Remove duplicate rows</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="remove_outliers" id="remove_outliers">
+    <label class="form-check-label" for="remove_outliers">Remove extreme price outliers (1% tails)</label>
+  </div>
+  <button type="submit" class="btn btn-primary mt-3">Apply Cleaning</button>
+</form>
+
+{% if summary %}
+<div class="card">
+  <div class="card-body">
+    <h5>Current Cleaned Data Summary</h5>
+    <p>Rows: {{ summary.rows }}</p>
+    <p>Columns: {{ summary.columns }}</p>
+    <p>Average price: {{ summary.avg_price | round(2) }}</p>
+    <p>Min price: {{ summary.min_price }}</p>
+    <p>Max price: {{ summary.max_price }}</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

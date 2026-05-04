@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Visualization Explorer</h3>
+
+<form method="post" class="mb-4 border rounded p-3 bg-white">
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label for="plot_type" class="form-label">Plot type</label>
+      <select name="plot_type" id="plot_type" class="form-select" required>
+        <option value="hist"   {% if selected_plot_type == "hist" %}selected{% endif %}>Histogram</option>
+        <option value="scatter"{% if selected_plot_type == "scatter" %}selected{% endif %}>Scatter Plot</option>
+        <option value="bar"    {% if selected_plot_type == "bar" %}selected{% endif %}>Bar Chart (aggregated)</option>
+        <option value="box"    {% if selected_plot_type == "box" %}selected{% endif %}>Box Plot</option>
+      </select>
+      <div class="form-text">
+        Choose the type of visualization.
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Filter by Airline</label>
+      <select name="filter_airline" class="form-select">
+        {% for v in airlines %}
+          <option value="{{ v }}" {% if v == selected_filter_airline %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Use "ALL" for no filter.</div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Filter by Class</label>
+      <select name="filter_class" class="form-select">
+        {% for v in classes_list %}
+          <option value="{{ v }}" {% if v == selected_filter_class %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Use "ALL" for no filter.</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <!-- Numeric X / Histogram column (for hist & scatter) -->
+    <div class="col-md-6 mb-3" id="x_col_section">
+      <h6>Numeric columns</h6>
+      <label class="form-label">X-axis / Histogram column</label>
+      <select name="x_col" class="form-select">
+        {% for c in numeric_cols %}
+          <option value="{{ c }}" {% if c == selected_x_col %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">
+        Used for histograms and as X-axis in scatter plots.
+      </div>
+    </div>
+
+    <!-- Numeric Y column (for scatter, bar, box) -->
+    <div class="col-md-6 mb-3" id="y_col_section">
+      <h6>Numeric columns (Y-axis)</h6>
+      <label class="form-label">Y-axis (scatter / bar / box)</label>
+      <select name="y_col" class="form-select">
+        {% for c in numeric_cols %}
+          <option value="{{ c }}" {% if c == selected_y_col %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">
+        Used for scatter plots, bar charts, and boxplots.
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Categorical column (for bar & box) -->
+    <div class="col-md-6 mb-3" id="cat_col_section">
+      <h6>Categorical columns</h6>
+      <label class="form-label">Category column (for bar/box)</label>
+      <select name="cat_col" class="form-select">
+        {% for c in categorical_cols %}
+          <option value="{{ c }}" {% if c == selected_cat_col %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">
+        Grouping variable for bar charts and boxplots (e.g., airline, class).
+      </div>
+    </div>
+
+    <!-- Aggregation (for bar only) -->
+    <div class="col-md-6 mb-3" id="agg_func_section">
+      <h6>Aggregation (bar charts)</h6>
+      <label class="form-label">Aggregate function</label>
+      <select name="agg_func" class="form-select">
+        <option value="mean"   {% if selected_agg_func == "mean" %}selected{% endif %}>Mean</option>
+        <option value="median" {% if selected_agg_func == "median" %}selected{% endif %}>Median</option>
+        <option value="count"  {% if selected_agg_func == "count" %}selected{% endif %}>Count</option>
+      </select>
+      <div class="form-text">
+        How to combine values within each category.
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary mt-2">Generate Plot</button>
+</form>
+
+{% if plot_url %}
+<div class="card">
+  <div class="card-body">
+    <h5>Plot</h5>
+    <img src="{{ url_for('static', filename=plot_url) }}" class="img-fluid" alt="Visualization">
+  </div>
+</div>
+{% else %}
+<p class="text-muted">Choose settings above and click "Generate Plot" to see a visualization.</p>
+{% endif %}
+
+<!-- Simple JS to toggle visible controls based on plot type -->
+<script>
+  function updateVizControls() {
+    var plotType = document.getElementById('plot_type').value;
+
+    var xSec   = document.getElementById('x_col_section');
+    var ySec   = document.getElementById('y_col_section');
+    var catSec = document.getElementById('cat_col_section');
+    var aggSec = document.getElementById('agg_func_section');
+
+    // Reset all to hidden, then selectively enable
+    xSec.style.display   = 'none';
+    ySec.style.display   = 'none';
+    catSec.style.display = 'none';
+    aggSec.style.display = 'none';
+
+    if (plotType === 'hist') {
+      // Histogram: only numeric X is needed
+      xSec.style.display = 'block';
+    } else if (plotType === 'scatter') {
+      // Scatter: X numeric + Y numeric
+      xSec.style.display = 'block';
+      ySec.style.display = 'block';
+    } else if (plotType === 'bar') {
+      // Bar: category + numeric Y + aggregation
+      ySec.style.display   = 'block';
+      catSec.style.display = 'block';
+      aggSec.style.display = 'block';
+    } else if (plotType === 'box') {
+      // Box: category + numeric Y
+      ySec.style.display   = 'block';
+      catSec.style.display = 'block';
+    }
+  }
+
+  // Run on page load and whenever the plot type changes
+  document.addEventListener('DOMContentLoaded', function () {
+    updateVizControls();
+    var plotTypeSelect = document.getElementById('plot_type');
+    plotTypeSelect.addEventListener('change', updateVizControls);
+  });
+</script>
+
+{% endblock %}
